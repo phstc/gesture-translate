@@ -8,8 +8,9 @@ endif
 
 .PHONY: test clean
 
-build: 
-	zip -r gesture-translate.xpi src
+build:
+	cd src && zip -r ../gesture-translate.xpi ./*
+
 test:
 	$(MAKE) -k -C test/unit
 	$(MAKE) -k -C test/online

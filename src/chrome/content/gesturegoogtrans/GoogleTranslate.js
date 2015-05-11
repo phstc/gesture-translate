@@ -148,63 +148,69 @@ if ("undefined" === typeof(GoogleTranslate)) {
                 return "en";
             }
         },
-		
-        translationRequest: function(langFrom, langTo, textToTranslate, onLoadFn, onErrorFn) {
-           
-		   var url = this.getGoogleUrl("api", langFrom, langTo, textToTranslate);
-		   
-		   if (this.getLog2Console()) this.log('TextToTranslate:' + textToTranslate);
-		   
-           var req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                            .createInstance(Ci.nsIXMLHttpRequest);
-						
-		   if (this.getLog2Console()) this.log(url);
+        
+        translationRequest: function (langFrom, langTo, textToTranslate, onLoadFn, onErrorFn) {
+            var that = this;
+            var url = this.getGoogleUrl("api", langFrom, langTo, textToTranslate);
 
-           req.addEventListener("load", (function() {
-               if (req.status !== 200) {
-                   onErrorFn(req.statusText);
-                   return;
-               }
+            if (this.getLog2Console())
+                this.log('TextToTranslate:' + textToTranslate);
 
-               //example-response:
-			   //{"sentences":[{"trans":"Beer and sausage that I like very much","orig":"Bier und Wurst das mag ich sehr","translit":"","src_translit":""}],"src":"de","server_time":87}
-			   var response = JSON.parse(req.responseText);
+            var req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+                    .createInstance(Ci.nsIXMLHttpRequest);
 
-               if (!response.sentences) {
-                   onErrorFn(req.responseText);
-                   return;
-               }
+            req.onload = function (aEvent) {
+                try {
+                    var response = JSON.parse(aEvent.target.responseText.replace(/,,+/g, ', '));
+                } catch (e) {
+                    that.log(e instanceof SyntaxError); // true
+                    that.log(e.message);                // "missing ; before statement"
+                    that.log(e.name);                   // "SyntaxError"
+                    that.log(e.fileName);               // "Scratchpad/1"
+                    that.log(e.lineNumber);             // 1
+                    that.log(e.columnNumber);           // 4
+                    that.log(e.stack);                  // "@Scratchpad/1:2:3\n"
+                }
 
-               var translatedText = '';
-               for(var i in response.sentences) {
-                   translatedText += response.sentences[i].trans;
-               }
-               onLoadFn(translatedText, response.src);
-           }), false);
+                var translatedText = '';
+                for (var i in response[0]) {
+                    translatedText += response[0][i][0];
+                }
+                onLoadFn(translatedText, response.src);
+            }
 
-           req.addEventListener("error", onErrorFn, false);
+            req.onerror = function (aEvent) {
+                onErrorFn(aEvent.target.statusText);
+                return;
+            }
 
-           var m;
-           if(url.length > 256 && (m = url.match(/^(https?:\/\/[^\?]+)\?(.+)$/))) {
-               /* If the whole URL contains too many characters, the server
-                * will return a 414 HTTP status code, so request parameters
-                * have to be put in the request body in order to avoid that.
-                */
 
-               req.open("POST", m[1], true);
-               /* XXX: request headers aren't supposed to be set once the
-                *      connection is opened, but an exception is thrown if done
-                *      before.
-                */
-               req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-               // NOTE: FF will add the correct charset to the Content-Type header.
-               req.send(m[2]);
-           } else {
-               req.open("GET", url, true);
-               req.send(null);
-           }
-       },
+            if (this.getLog2Console())
+                this.log(url);
 
+            req.addEventListener("error", onErrorFn, false);
+
+            var m;
+            if (url.length > 256 && (m = url.match(/^(https?:\/\/[^\?]+)\?(.+)$/))) {
+                /* If the whole URL contains too many characters, the server
+                 * will return a 414 HTTP status code, so request parameters
+                 * have to be put in the request body in order to avoid that.
+                 */
+
+                req.open("POST", m[1], true);
+                /* XXX: request headers aren't supposed to be set once the
+                 *      connection is opened, but an exception is thrown if done
+                 *      before.
+                 */
+                req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                // NOTE: FF will add the correct charset to the Content-Type header.
+                req.send(m[2]);
+            } else {
+                req.open("GET", url, true);
+                req.send(null);
+            }
+        },
+       
        getGoogleUrl: function(urlType, langFrom, langTo, text, curDetectedLang) {
 
            var formattedUrl = '';
@@ -213,11 +219,12 @@ if ("undefined" === typeof(GoogleTranslate)) {
            switch (urlType) {
                 // Google Translate API > JSON
                 case "api":
-                    formattedUrl = 'http://translate.google.com/translate_a/t?client=gesturetranslate';
-					langFrom="auto";  //ALWAYS use "auto", trusting google doing the right translation (if detectlanguage is "active", langFrom would be very reliable too)
-					formattedUrl += '&sl=' + langFrom;
-					formattedUrl += '&tl=' + langTo;
-					formattedUrl += '&text=' + encodeURIComponent(text);
+                    langFrom="auto";
+                    formattedUrl = 'http://translate.google.com/translate_a/single?client=t&ie=UTF-8&oe=UTF-8' + '&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&dt=at';
+                    formattedUrl += '&q=' + encodeURIComponent(text);
+                    formattedUrl += '&sl=' + langFrom;
+                    formattedUrl += '&tl=' + langTo;
+                    formattedUrl += '&hl=' + langTo;
                     break;
                 // Google Translate page
                 case "page":
