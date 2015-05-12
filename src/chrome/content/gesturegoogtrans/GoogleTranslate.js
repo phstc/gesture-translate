@@ -161,7 +161,11 @@ if ("undefined" === typeof(GoogleTranslate)) {
 
             req.onload = function (aEvent) {
                 try {
-                    var response = JSON.parse(aEvent.target.responseText.replace(/,,+/g, ', '));
+                    var response = aEvent.target.responseText;
+                    while (response.match(/[,|\[](,)/)) {
+                        response = response.replace(/([,|\[])(,)/, '$1"",')
+                    }
+                    response = JSON.parse(response);
                 } catch (e) {
                     that.log(e instanceof SyntaxError); // true
                     that.log(e.message);                // "missing ; before statement"
