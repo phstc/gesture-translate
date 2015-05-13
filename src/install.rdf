@@ -7,7 +7,7 @@
     <em:id>gesture-translate@pablocantero.com</em:id>
     <em:type>2</em:type>
     <em:name>Gesture Translate</em:name>
-    <em:version>0.6</em:version>
+    <em:version>0.6.1</em:version>
     <em:optionsURL>chrome://gesturegoogtrans/content/preferences.xul</em:optionsURL>
 
     <em:name>Gesture Translate</em:name>
